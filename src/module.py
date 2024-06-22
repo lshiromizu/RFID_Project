@@ -99,30 +99,11 @@ class RFIDReader:
         """
         cmd = b'\x28'
         ant = bytes([(ant_1 << 0) | (ant_2 << 1) | (ant_3 << 2) | (ant_4 << 3)])
-        cmd += ant
-
-        response = self.send_command(cmd)
-
-
-        return response
-    
-    def get_antenna(self):
-        """
-        Get Activated/deactivated antennas.
-
-        Parameters: 
-        None
-
-        Returns:
-        ant: Hex byte array,
-
-        """
-        cmd = b'\x2A'
+        cmd = cmd + b'\x00\x00' + ant
 
         response = self.send_command(cmd)
 
         return response
-        
 
     def set_gen2_params(self, target, action):
         """
@@ -159,7 +140,6 @@ class RFIDReader:
 
         return response
 
-
     def set_RF_mode(self, mode, save=False):
         """
         **TODO**
@@ -193,54 +173,7 @@ class RFIDReader:
         response (str): The device RF configuration.
         """
 
-    def set_dwell_time(self, time_on, time_off, save=False):
-        """
-        Set the device dwell (work and wait) time.
-
-        Parameters: 
-        time_on (int): Work time in ms (range 0 to 65535). 
-        time_off (int): Wait time in ms (range 0 to 65535). 
-        save (bool): If True, saves the configuration to NVM. Defaults to False.
-
-        Returns:
-        response: The device response, bytearray.
-        """
-        cmd = b'\x3C'
-
-        if save:
-            NVM = b'\x01'
-        else:
-            NVM = b'\x00'
-
-        work = int(time_on).to_bytes(2, byteorder='big')
-        wait = int(time_off).to_bytes(2, byteorder='big')
-
-        cmd = cmd + NVM + work + wait
-
-        response = self.send_command(cmd)
-        
-        return response
-
-    def get_dwell_time(self):
-        """
-        Get the device dwell (work and wait) time.
-
-        Parameters: 
-        None. 
-
-        Returns:
-        time_on, time_off: The device dwell (work and wait) time in ms.
-        """
-        cmd = b'\x3E'
-
-        response = self.send_command(cmd)
-
-        time_on = int.from_bytes(response[6:8])
-        time_off = int.from_bytes(response[8:10])
-
-        return time_on, time_off
-
-    def inventory_read(self, cycles=None):
+    def read_start(self, cycles):
         """
         Perform multiple Tag reads.
         Note: Device will not receive other commands while performing an inventory read. 
@@ -274,7 +207,6 @@ class RFIDReader:
 
         return inventory
 
-
     def read_stop(self):
         """
         Stop reading.
@@ -293,72 +225,6 @@ class RFIDReader:
         response = self.send_command(cmd)
 
         return response
-
-    def single_read(self, timeout):
-        """
-        Perform a single Tag read.
-
-        Parameters: 
-        timeout (int): Timeout value in ms. Reading stops as soon as a tag is detected or timeout occurs. 
-
-        Returns:
-        response: Detected Tag, data: EPC (str), RSSI (float), Antenna number. 
-        """
-        cmd = b'\x80'
-
-        time = int(timeout).to_bytes(2, byteorder='big')
-
-        cmd += time
-
-        response = self.send_command(cmd)
-
-        EPC = response[7:(len(response)-6)].decode()
-        RSSI = 10 * hex_to_dbm(response[(len(response)-6):(len(response)-4)])
-        ant = int.from_bytes(response[(len(response)-4)], byteorder='big')
-
-        return EPC, RSSI, ant
-
-    def timed_read(self, time):
-        """
-        Perform a timed inventory read.
-
-        Parameters: 
-        time (int): Reading time value in ms (range 10 to 30000ms). Reading until time runs out. 
-
-        Returns:
-        tag_count: Number of tags detected.
-        """
-        if not (10 <= time <= 30000):
-            raise ValueError("Time must be between 10 and 30000")
-
-        cmd = b'\x90'
-        timeout = int(time).to_bytes(2, byteorder='big')
-        cmd += timeout
-
-        response = self.send_command(cmd)
-
-        tag_count = int.from_bytes(response[5:9], byteorder='big')
-
-        return tag_count
-
-    def get_timed_read(self):
-        """
-        **TODO**
-        Get Tags detected during timed read. 
-
-        Parameters: 
-        None
-
-        Returns:
-        response: Detected tags, data: PC+EPC, RSSI, Antenna number
-        """
-        cmd = b'\x92'
-
-        response = self.send_command(cmd)
-
-        inventory = parse_tag_data(response)
-
-        return inventory
 
     def software_reset(self):
         """
@@ -450,7 +316,7 @@ def parse_tag_data(data):
             rssi = data[rssi_start:rssi_end]
             antenna = data[antenna_start:antenna_end]
             parsed_data.append({
-                'EPC': epc.decode('utf-8'),
+                'EPC': epc,
                 'RSSI': 10 * hex_to_dbm(rssi),
                 'Antenna': int.from_bytes(antenna, byteorder='big')
             })

@@ -1,4 +1,7 @@
 import serial
+import time
+import pandas as pd
+
 
 class RFIDReader:
 
@@ -26,10 +29,18 @@ class RFIDReader:
         SOF = b'\xA5\x5A'
         EOF = b'\x0D\x0A'
 
+        timeout = 20 # Timeout in seconds
+
         length = len(cmd) + 7
         crc = calculate_crc(length.to_bytes(2, byteorder='big') + cmd)
         cmd = SOF + length.to_bytes(2, byteorder='big') + cmd + crc + EOF
         self.ser.write(cmd)
+
+        start_time = time.time()
+        while not self.ser.in_waiting:
+            if (time.time() - start_time) > timeout:
+                print("Timeout waiting for response")
+                return b''
 
         response = self.ser.readline()
 
@@ -198,9 +209,12 @@ class RFIDReader:
 
         loop = 0
         while not stop:
+            if not response:
+                    print("Timeout waiting for response")
+                    break
             response += self.ser.readline()
             loop +=1
-            if cycles is not None and loop > cycles:
+            if cycles is not None and loop >= (cycles-1):
                 stop=True
         
         inventory = parse_tag_data(response)
@@ -239,8 +253,6 @@ class RFIDReader:
         cmd = b'\x2A'
 
         response = self.send_command(cmd)
-
-        print('Reset succeeded. \r\n')
         
         return response
 
@@ -315,13 +327,14 @@ def parse_tag_data(data):
             epc = data[epc_start:epc_end]
             rssi = data[rssi_start:rssi_end]
             antenna = data[antenna_start:antenna_end]
-            parsed_data.append({
-                'EPC': epc,
-                'RSSI': 10 * hex_to_dbm(rssi),
-                'Antenna': int.from_bytes(antenna, byteorder='big')
-            })
+            parsed_data.append([
+                epc.hex(),
+                10 * hex_to_dbm(rssi),
+                int.from_bytes(antenna, byteorder='big')
+            ])
             index = antenna_end + 3
         else:
             index += 1
+    df = pd.DataFrame(parsed_data, columns=['EPC', 'RSSI', 'Antenna'])
+    return df
 
-    return parsed_data

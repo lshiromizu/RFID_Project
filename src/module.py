@@ -116,6 +116,23 @@ class RFIDReader:
 
         return response
 
+    def get_antenna(self):
+        '''
+        Get activated/deactivated antennas.
+
+        Parameters: 
+        None
+
+        Returns: 
+        response: Antenna byte, representing activated/deactivated antennas.
+        '''
+        cmd = b'\x2A'
+
+        response = self.send_command(cmd)
+
+        return response
+
+
     def set_gen2_params(self, target, action):
         """
         **TODO**
@@ -136,7 +153,6 @@ class RFIDReader:
 
     def get_gen2_params(self):
         """
-        **TODO**
         Set the device Gen2 parameters.
 
         Parameters: 
@@ -153,8 +169,7 @@ class RFIDReader:
 
     def set_RF_mode(self, mode, save=False):
         """
-        **TODO**
-        Set device RF mode.
+        Set device RF link mode.
 
         Parameters: 
         mode (int): 0 -> DSB_ASK /FM0/ 40 KHz
@@ -166,16 +181,30 @@ class RFIDReader:
         Returns:
         response: The device response, bytearray.
         """
-        cmd = b'\x52'
+        cmd = b'\x52\x00'
+        
+        if save:
+            cmd = cmd + b'\x01'
+        else:
+            cmd = cmd + b'\x00'
+
+        match mode:
+            case 0:
+                cmd = cmd + b'\x00'
+            case 1:
+                cmd = cmd + b'\x01'
+            case 2:
+                cmd = cmd + b'\x02'
+            case 3:
+                cmd = cmd + b'\x03'      
 
         response = self.send_command(cmd)
 
         return response
 
-    def get_RF_mode():
+    def get_RF_mode(self):
         """
-        **TODO**
-        Get device RF configuration.
+        Get device RF link mode.
 
         Parameters: 
         None
@@ -183,6 +212,13 @@ class RFIDReader:
         Returns:
         response (str): The device RF configuration.
         """
+        cmd = b'\x54\x00\x00'
+        
+        response = self.send_command(cmd)
+
+        mode = int(response[7])
+
+        return mode
 
     def read_start(self, cycles):
         """
@@ -211,6 +247,7 @@ class RFIDReader:
         while not stop:
             if not response:
                     print("Timeout waiting for response")
+                    self.read_stop()
                     break
             response += self.ser.readline()
             loop +=1

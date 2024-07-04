@@ -1,5 +1,8 @@
 from module import RFIDReader
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import examples
 
 
 def main():
@@ -11,11 +14,8 @@ def main():
 
 
 
-
     # ------------------------------------------    
     # Uncomment the following lines to run examples:
-
-    #import examples
 
     #examples.example1(device)
 

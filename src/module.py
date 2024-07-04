@@ -43,7 +43,7 @@ class RFIDReader:
                 return b''
 
         response = self.ser.readline()
-
+        print(response)
         return response
 
     
@@ -73,7 +73,7 @@ class RFIDReader:
         
         response = self.send_command(cmd)
 
-        if response[5]:
+        if response[5] == 1:
             print("Power set. \r\n")
         else:
             print("Error. \r\n")
@@ -115,23 +115,6 @@ class RFIDReader:
         response = self.send_command(cmd)
 
         return response
-
-    def get_antenna(self):
-        '''
-        Get activated/deactivated antennas.
-
-        Parameters: 
-        None
-
-        Returns: 
-        response: Antenna byte, representing activated/deactivated antennas.
-        '''
-        cmd = b'\x2A'
-
-        response = self.send_command(cmd)
-
-        return response
-
 
     def set_gen2_params(self, target, action):
         """
@@ -241,7 +224,8 @@ class RFIDReader:
         cmd += num
 
         stop=False
-        response = self.send_command(cmd)
+        self.send_command(cmd)
+        response = self.ser.read()
 
         loop = 0
         while not stop:
@@ -249,11 +233,11 @@ class RFIDReader:
                     print("Timeout waiting for response")
                     self.read_stop()
                     break
-            response += self.ser.readline()
+            response = response + self.ser.readline()
             loop +=1
             if cycles is not None and loop >= (cycles-1):
                 stop=True
-        
+
         inventory = parse_tag_data(response)
 
         return inventory

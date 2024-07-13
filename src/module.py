@@ -29,7 +29,7 @@ class RFIDReader:
         SOF = b'\xA5\x5A'
         EOF = b'\x0D\x0A'
 
-        timeout = 20 # Timeout in seconds
+        timeout = 10 # Timeout in seconds
 
         length = len(cmd) + 7
         crc = calculate_crc(length.to_bytes(2, byteorder='big') + cmd)
@@ -42,7 +42,9 @@ class RFIDReader:
                 print("Timeout waiting for response")
                 return b''
 
-        response = self.ser.readline()
+        response = self.ser.read_until(b'\r\n')
+        while (len(response) > 4) and (response[4] != (cmd[4]+1)):
+            response = self.ser.read_until(b'\r\n')
 
         return response
 
@@ -73,10 +75,10 @@ class RFIDReader:
         
         response = self.send_command(cmd)
 
-        if response[5]:
-            print("Power set. \r\n")
+        if response[4:6] == b'\x11\x01':
+            print("Power set. ")
         else:
-            print("Error. \r\n")
+            print("Error. ")
         
         return response
     
@@ -136,7 +138,6 @@ class RFIDReader:
 
     def get_gen2_params(self):
         """
-        **TODO**
         Set the device Gen2 parameters.
 
         Parameters: 
@@ -153,8 +154,7 @@ class RFIDReader:
 
     def set_RF_mode(self, mode, save=False):
         """
-        **TODO**
-        Set device RF mode.
+        Set device RF link mode.
 
         Parameters: 
         mode (int): 0 -> DSB_ASK /FM0/ 40 KHz
@@ -167,15 +167,29 @@ class RFIDReader:
         response: The device response, bytearray.
         """
         cmd = b'\x52'
+        
+        if save:
+            cmd = cmd + b'\x00\x01'
+        else:
+            cmd = cmd + b'\x00\x00'
+
+        match mode:
+            case 0:
+                cmd = cmd + b'\x00'
+            case 1:
+                cmd = cmd + b'\x01'
+            case 2:
+                cmd = cmd + b'\x02'
+            case 3:
+                cmd = cmd + b'\x03'      
 
         response = self.send_command(cmd)
 
         return response
 
-    def get_RF_mode():
+    def get_RF_mode(self):
         """
-        **TODO**
-        Get device RF configuration.
+        Get device RF link mode.
 
         Parameters: 
         None
@@ -183,6 +197,13 @@ class RFIDReader:
         Returns:
         response (str): The device RF configuration.
         """
+        cmd = b'\x54\x00\x00'
+        
+        response = self.send_command(cmd)
+
+        mode = int(response[7])
+
+        return mode
 
     def read_start(self, cycles):
         """
@@ -204,20 +225,21 @@ class RFIDReader:
 
         cmd += num
 
-        stop=False
-        response = self.send_command(cmd)
-
+        self.send_command(cmd)
+        self.ser.read_until(b'\r\n')
+        response = self.ser.read_until(b'\r\n')
         loop = 0
-        while not stop:
-            if not response:
-                    print("Timeout waiting for response")
-                    break
-            response += self.ser.readline()
+        while loop < (cycles-1):
+            response = response + self.ser.read_until(b'\r\n')
             loop +=1
-            if cycles is not None and loop >= (cycles-1):
-                stop=True
-        
+
+        self.read_stop()
+        time.sleep(0.1)
+        self.ser.flush()
+
         inventory = parse_tag_data(response)
+
+        print("Done reading.")
 
         return inventory
 
@@ -231,9 +253,6 @@ class RFIDReader:
         Returns:
         response: The device response, bytearray.
         """
-        global stop
-        stop=True
-
         cmd = b'\x8C'
 
         response = self.send_command(cmd)

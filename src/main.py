@@ -16,14 +16,13 @@ def main():
 
 
 
+
     # ------------------------------------------
     # Uncomment the following lines to run examples:
 
     #examples.example1(device)
 
     #examples.example2(device)
-    
-    #examples.distance_vs_RSSI(device)
 
     #-------------------------------------------
     device.read_stop()

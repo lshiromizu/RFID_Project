@@ -8,7 +8,7 @@ def example1(device):
     print("Running example 1")
 
     device.set_RF_mode(mode=3)
-    device.set_power(pwr=3.0, save=False)
+    device.set_power(pwr=15.0, save=False)
 
     device.set_antenna(ant_1=1, ant_2=1, ant_3=0, ant_4=0, save=False)
 

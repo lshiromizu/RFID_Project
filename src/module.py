@@ -105,7 +105,7 @@ class RFIDReader:
 
         Parameters: 
         ant_1, ant_2, ant_3, ant_4 (bool): Antenna on/off values. All activated by default.
-        save (bool): save (bool): If True, saves the configuration to NVM. Defaults to False.
+        save (bool): If True, saves the configuration to NVM. Defaults to False.
 
         Returns:
         response: The device response, bytearray.

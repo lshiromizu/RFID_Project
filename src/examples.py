@@ -3,6 +3,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
+target_epcs = {
+        "e2801160600002083e75ba94",
+        "e2801160600002083e756ab6",
+        "e2801160600002083e75baa4",
+        "e2801160600002083e756ac6"
+    }
+
 def example1(device):
 
     print("Running example 1")
@@ -87,3 +94,12 @@ def example2(device):
     plt.grid(axis='y')
     plt.show()
     '''
+
+
+def get_target_epcs():
+    return {
+        "e2801160600002083e75ba94",
+        "e2801160600002083e756ab6",
+        "e2801160600002083e75baa4",
+        "e2801160600002083e756ac6"
+    }

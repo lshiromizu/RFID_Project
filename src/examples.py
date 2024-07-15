@@ -3,13 +3,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-target_epcs = {
-        "e2801160600002083e75ba94",
-        "e2801160600002083e756ab6",
-        "e2801160600002083e75baa4",
-        "e2801160600002083e756ac6"
-    }
-
 def example1(device):
 
     print("Running example 1")
